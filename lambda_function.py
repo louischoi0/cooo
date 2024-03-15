@@ -3,10 +3,11 @@ from bs4 import BeautifulSoup as soup
 from urllib.parse import quote
 from urllib.parse import urlparse, parse_qs
 import subprocess
-
 import boto3
 from boto3.dynamodb.conditions import Key
-import pandas as pd
+import time
+import pytz
+from datetime import datetime
 
 dynamodb = boto3.resource(
     'dynamodb',
@@ -14,16 +15,21 @@ dynamodb = boto3.resource(
 
 def push(item_id, keyword, page, idx):
     table = dynamodb.Table('cooviewhistory')
+    unix_timestamp = time.time()
+    seoul_timezone = pytz.timezone('Asia/Seoul')
 
-    now = pd.Timestamp.now()
+    dt_utc = datetime.utcfromtimestamp(unix_timestamp)
+    dt_seoul = dt_utc.replace(tzinfo=pytz.utc).astimezone(seoul_timezone)
+    dt = dt_seoul.isoformat()
+
     table.put_item(
          Item={
-          'logts': int(now.timestamp()),
+          'logts': int(unix_timestamp),
           'item_id': int(item_id),
           'page': int(page),
           'idx': int(idx),
           'keyword': str(keyword),
-          'dt': now.isoformat(),
+          'dt': dt 
       }
     )
 
@@ -96,17 +102,28 @@ def _get_view_page(soup, keyword, item_id, req_call_func):
             query = get_product_id_url(iurl)
             _item_id = query["itemId"][0]
             _item_id = str(_item_id)
-            print(_item_id) 
-            if item_id == _item_id:
+            print(_item_id, name) 
+            if str(item_id) == str(_item_id):
                 return idx, p
-
+    
+    return -1, -1
 
 def _item_schedule_func(keyword, item_id):
-    idx, p = get_view_page_curl(keyword, item_id)
-    push(productid, keyword, p, idx)
+    try:
+        idx, p = get_view_page_curl(keyword, item_id)
+    except:
+        idx = -2
+        p = -2
+    push(item_id, keyword, p, idx)
+    return idx, p
 
-if __name__ == "__main__": 
-    keyword = "장어"
-    productid = 21842068713
-    idx, p = get_view_page_curl(keyword,productid)
+def lambda_handler(event, context):
+    keyword = event.get('keyword', '')
+    item_id = event.get('item_id', '')
+    idx, p = _item_schedule_func(keyword, item_id)
     print(idx, p)
+
+if __name__ == "__main__":
+    lambda_handler({ 'keyword': '장어', 'item_id': 12853670963}, {});
+
+
