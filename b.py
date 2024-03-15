@@ -15,6 +15,7 @@ def push(item_id, keyword, page, idx):
           'logts': int(pd.Timestamp.now().timestamp()),
           'item_id': int(item_id),
           'page': int(page),
+          'idx': int(idx),
           'keyword': str(keyword),
       }
   )
