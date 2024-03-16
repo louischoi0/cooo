@@ -3,11 +3,14 @@ import psycopg2
 import json
 from time import sleep
 from coofunc import _item_schedule_func
+from airflow import DAG
+from datetime import datetime, timedelta
+from airflow.operators.python_operator import PythonOperator
 
 def get_redis_connection():
     host = '43.202.45.111'
     port = 6379
-    return redis.Redis(host=host, port=port, decode_responses=True)
+    return redis.Redis(host=host, port=port, decode_responses=True, password='a02040608')
 
 def get_db_connection():
     DB_HOST = "wwhale-on-gpt.cg6x7yqwsa6m.ap-northeast-2.rds.amazonaws.com"
@@ -55,20 +58,23 @@ def _worker(cursor, redis):
 
         sleep(interval)
 
-
-if __name__ == "__main__":
+def produce_dag_func():
     con = get_db_connection()
     cursor = con.cursor()
     redis = get_redis_connection()
     push_itemlog_schedule(cursor, redis)
-
-    _worker(cursor, redis)
-
-if False and __name__ == "__main__":
-    con = get_db_connection()
-    cursor = con.cursor()
-    redis = get_redis_connection()
-
-    push_itemlog_schedule(cursor, redis)
-    get_itemlog_schedule(redis)
     con.close()
+    redis.close()
+
+with DAG(   
+        dag_id='coupang_viewhistory_curltask', 
+        schedule_interval=timedelta(minutes=5),
+        start_date=datetime(2023, 3, 16, 9, 30),
+        catchup=False
+    ) as dag:
+
+    python_task = PythonOperator(
+        task_id='run_my_function',
+        python_callable=produce_dag_func,  
+        dag=dag,
+    )

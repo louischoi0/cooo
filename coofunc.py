@@ -8,6 +8,7 @@ from boto3.dynamodb.conditions import Key
 import time
 import pytz
 from datetime import datetime
+import time, random
 
 dynamodb = boto3.resource(
     'dynamodb',
@@ -105,6 +106,8 @@ def _get_view_page(soup, keyword, item_id, req_call_func):
             print(_item_id, name) 
             if str(item_id) == str(_item_id):
                 return idx, p
+        
+        time.sleep(random.uniform(2, 5))
     
     return -1, -1
 
