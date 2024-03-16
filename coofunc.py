@@ -109,13 +109,13 @@ def _get_view_page(soup, keyword, item_id, req_call_func):
     return -1, -1
 
 def _item_schedule_func(keyword, item_id):
-    idx, p = get_view_page_curl(keyword, item_id)
-    #try:
-    #    idx, p = get_view_page_curl(keyword, item_id)
-    #except:
-    #    idx = -2
-    #    p = -2
-    #push(item_id, keyword, p, idx)
+    try:
+        idx, p = get_view_page_curl(keyword, item_id)
+    except Exception as e:
+        print(e)
+        idx = -2
+        p = -2
+    push(item_id, keyword, p, idx)
     return idx, p
 
 def lambda_handler(event, context):
@@ -126,5 +126,4 @@ def lambda_handler(event, context):
 
 if __name__ == "__main__":
     lambda_handler({ 'keyword': '장어', 'item_id': 12853670963}, {});
-
 
